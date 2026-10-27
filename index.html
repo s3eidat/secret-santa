@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; media-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:; manifest-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Secret Santa Generator — Draw Names Fairly, No Emails | S3eidat Tools</title>
+<meta name="description" content="Free Secret Santa name draw: add people, keep couples from drawing each other, set a budget and date, then pass the phone so everyone sees only their own match, or print folded slips. No emails, no sign-up, nothing uploaded.">
+<meta property="og:title" content="Secret Santa — draw names fairly, no emails">
+<meta property="og:description" content="Fair random draw with exclusions, pass-the-phone reveal and printable slips. Runs 100% in your browser.">
+<link rel="icon" href="kit/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="kit/kit.css">
+<link rel="stylesheet" href="app.css">
+<script src="kit/kit.js"></script>
+<!--s3:seo-->
+<link rel="canonical" href="https://s3eidat.github.io/secret-santa/">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d0f12">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="S3eidat Tools">
+<meta property="og:url" content="https://s3eidat.github.io/secret-santa/">
+<meta property="og:image" content="https://s3eidat.github.io/secret-santa/screenshot.png">
+<meta property="og:image:width" content="1280"><meta property="og:image:height" content="800">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Secret Santa — Draw names fairly, no emails needed">
+<meta name="twitter:description" content="Draw names fairly, no emails needed. Free, private and runs 100% in your browser: no sign-up, no uploads.">
+<meta name="twitter:image" content="https://s3eidat.github.io/secret-santa/screenshot.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "Secret Santa", "url": "https://s3eidat.github.io/secret-santa/", "description": "Draw names fairly, no emails needed. Free, private and runs 100% in your browser: no sign-up, no uploads.", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Any (web browser)", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "image": "https://s3eidat.github.io/secret-santa/screenshot.png", "author": {"@type": "Person", "name": "s3eidat", "url": "https://github.com/s3eidat"}}</script>
+<!--/s3:seo-->
+</head>
+<body data-tool="secret-santa">
+<main class="s3-main">
+  <section class="s3-hero no-print">
+    <h1>Secret Santa</h1>
+    <p>Add everyone, keep couples from drawing each other, then pass the phone round so each person sees only their own match, or print folded slips. No emails, no sign-up.</p>
+  </section>
+
+  <div class="ss-setup no-print" id="setup">
+    <section class="card stack">
+      <div class="row between">
+        <h2>Who's in <small id="count"></small></h2>
+        <div class="row">
+          <select class="select ss-groups" id="groups" aria-label="Saved groups"><option value="">Saved groups…</option></select>
+          <button class="btn ghost small" id="saveGroup" title="Save names, exclusions and details in this browser">Save group</button>
+          <button class="btn ghost small" id="delGroup" hidden><svg class="i"><use href="#i-trash"/></svg>Delete</button>
+        </div>
+      </div>
+      <div class="row nowrap">
+        <label class="sr" for="name">Name</label>
+        <input class="input grow" id="name" dir="auto" maxlength="40" autocomplete="off" placeholder="Type a name and press Enter (or paste a list)">
+        <button class="btn" id="add"><svg class="i"><use href="#i-plus"/></svg>Add</button>
+      </div>
+      <div class="ss-people" id="people"></div>
+
+      <h2>Who can't draw whom <small>couples, housemates…</small></h2>
+      <div class="row ss-ex-row">
+        <label class="sr" for="exA">First person</label>
+        <select class="select grow" id="exA"></select>
+        <span class="faint">↔</span>
+        <label class="sr" for="exB">Second person</label>
+        <select class="select grow" id="exB"></select>
+        <button class="btn" id="exAdd">Add pair</button>
+      </div>
+      <div class="ss-pairs" id="pairs"></div>
+    </section>
+
+    <section class="card stack">
+      <h2>Details <small>optional, shown with each match</small></h2>
+      <div class="grid-2 ss-tight">
+        <label class="field">Budget
+          <input class="input" id="budget" maxlength="30" dir="auto" placeholder="e.g. 20 JD">
+        </label>
+        <label class="field">Gift exchange date
+          <input class="input" id="date" type="date">
+        </label>
+      </div>
+      <label class="field">Message
+        <textarea class="textarea prose ss-msg" id="msg" maxlength="300" dir="auto" placeholder="e.g. Wrap it nicely! We meet at Sara's at 7 pm."></textarea>
+      </label>
+      <div class="ss-status" id="status" aria-live="polite"></div>
+      <button class="btn primary big" id="draw"><svg class="i"><use href="#i-refresh"/></svg>Draw names</button>
+      <p class="faint">The draw uses your browser's cryptographic random generator. Nobody, including you, sees the matches unless they reveal their own.</p>
+    </section>
+  </div>
+
+  <section class="card mt no-print" id="results" hidden>
+    <div class="row between">
+      <div class="seg" id="view" role="group" aria-label="How to share">
+        <button aria-pressed="true" data-v="phone">Pass the phone</button>
+        <button aria-pressed="false" data-v="slips">Printable slips</button>
+      </div>
+      <div class="row">
+        <button class="btn ghost small" id="redraw"><svg class="i"><use href="#i-refresh"/></svg>Draw again</button>
+        <button class="btn ghost small" id="edit">Edit group</button>
+      </div>
+    </div>
+
+    <div id="phoneView" class="mt">
+      <div id="pick">
+        <p class="muted ss-lead">Hand the phone to each person. They tap their own name, see who they're buying for, then hide it before passing it on.</p>
+        <div class="ss-names" id="names"></div>
+        <p class="faint mt" id="seenNote"></p>
+      </div>
+      <div class="ss-stage" id="confirm" hidden>
+        <p class="muted">Only continue if you are</p>
+        <b class="ss-who" id="confirmName" dir="auto"></b>
+        <div class="row ss-center">
+          <button class="btn ghost" id="notMe">That's not me</button>
+          <button class="btn primary big" id="reveal">Show my match</button>
+        </div>
+      </div>
+      <div class="ss-stage ss-match" id="match" hidden>
+        <p class="muted"><span id="matchGiver" dir="auto"></span>, you're buying a gift for</p>
+        <b class="ss-who ss-glow" id="matchName" dir="auto"></b>
+        <div class="ss-details" id="matchDetails"></div>
+        <button class="btn primary big" id="hide"><svg class="i"><use href="#i-check"/></svg>Got it, hide and pass on</button>
+      </div>
+    </div>
+
+    <div id="slipsView" class="mt" hidden>
+      <div class="row between">
+        <p class="muted ss-lead">Print, cut along the dashed lines, then fold the bottom flap up over the middle so the match is hidden (the name stays on the outside). Hand each person the slip with their name on it.</p>
+        <button class="btn primary" id="print"><svg class="i"><use href="#i-file"/></svg>Print slips</button>
+      </div>
+      <p class="faint">The preview below hides the matches. They only appear on paper.</p>
+    </div>
+  </section>
+
+  <div class="ss-sheet" id="slips" hidden></div>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
